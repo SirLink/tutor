@@ -130,15 +130,29 @@ jQuery(document).ready(function($) {
 		nonce_key: window._tutorobject.nonce_key,
 		played_once: false,
 		max_seek_time: 0,
+		watermarkOptions: {
+			type: 'random', // fixed | random
+			position: 'top-left', // top-left | top-right | bottom-left | bottom-right
+			opacity: 0.4,
+			// imageUrl: 'https://www.themeum.com/wp-content/themes/qubelycore/images/logo.svg',
+			textContent: 'Tutor LMS',
+			intervalTime: 10,
+			appearanceTime: 2
+		},
+		animationId: null,
+		lastTimestamp: null,
+		isVisible: false,
+		showTimestamp: null,
 		video_data: function() {
 			const video_track_data = $('#tutor_video_tracking_information').val();
-			return video_track_data ? JSON.parse(video_track_data) : {};
+			return video_track_data ? JSON.parse(video_track_data) : null;
 		},
 		track_player: function() {
 			const that = this;
 			if (typeof Plyr !== 'undefined') {
 				let syncTimeInterval;
 				const video_data = that.video_data();
+
 				const player = new Plyr(this.player_DOM, {
 					keyboard: {
 						focused: that.isRequiredPercentage() ? false : true,
@@ -161,6 +175,11 @@ jQuery(document).ready(function($) {
 						}),
 					}
 				});
+
+				if (!video_data) {
+					return;
+				}
+
 				player.on('ready', function(event) {
 					const instance = event.detail.plyr;
 					const { best_watch_time = 0 } = video_data || {};
@@ -179,6 +198,11 @@ jQuery(document).ready(function($) {
 						});
 					}
 					that.sync_time(instance);
+
+					// Add watermark element to the video wrapper
+					if (_tutorobject.tutor_pro_url) { // Need to update condition
+						that.addWatermark();
+					}
 				});
 				
 				player.on('play', (event) => {
@@ -191,18 +215,32 @@ jQuery(document).ready(function($) {
 						that.sync_time(instance);
 					}, intervalSeconds * 1000);
 
+					// Hide video poster on play
 					if (_tutorobject.tutor_pro_url && player.provider === 'youtube') {
 						$('.plyr--youtube.plyr__poster-enabled .plyr__poster').css('opacity', 0);
 					}
+
+					// Display water mark on video
+					if (_tutorobject.tutor_pro_url) { // Need to update condition
+						if (that.watermarkOptions.type === 'random') {
+							that.animationId = requestAnimationFrame((timestamp) => that.animateWatermark(timestamp));
+						} else {
+							that.showWatermark();
+						}
+					}
 				});
 
-				player.on('pause', () => {
+				player.on('pause', (event) => {
+					const instance = event.detail.plyr;
+					that.sync_time(instance);
 					clearInterval(syncTimeInterval);
+					cancelAnimationFrame(that.animationId);
 				});
 
 				player.on('ended', function(event) {
 					clearInterval(syncTimeInterval);
-					const video_data = that.video_data();
+					cancelAnimationFrame(that.animationId);
+
 					const instance = event.detail.plyr;
 					const data = { is_ended: true };
 					that.sync_time(instance, data);
@@ -210,6 +248,7 @@ jQuery(document).ready(function($) {
 						that.autoload_content();
 					}
 
+					// Show video poster after video end to hide related videos 
 					if (_tutorobject.tutor_pro_url && player.provider === 'youtube') {
 						$('.plyr--youtube.plyr__poster-enabled .plyr__poster').css('opacity', 1);
 					}
@@ -217,13 +256,16 @@ jQuery(document).ready(function($) {
 			}
 		},
 		sync_time: function(instance, options) {
-			const video_data = this.video_data();
-			if (!video_data) {
-				return;
-			}
-
+			const { post_id, best_watch_time } = this.video_data();
+			
 			if (this.isRequiredPercentage()) {
 				this.enable_complete_lesson_btn(instance);
+			}
+
+			// Update max seek time 
+			const seekTime = best_watch_time > instance.currentTime ? best_watch_time : instance.currentTime;
+			if (seekTime > this.max_seek_time) {
+				this.max_seek_time = seekTime;
 			}
 
 			//TUTOR is sending about video playback information to server.
@@ -231,7 +273,7 @@ jQuery(document).ready(function($) {
 				action: 'sync_video_playback',
 				currentTime: instance.currentTime,
 				duration: instance.duration,
-				post_id: video_data.post_id,
+				post_id: post_id,
 			};
 			data[this.nonce_key] = _tutorobject[this.nonce_key];
 			let data_send = data;
@@ -239,11 +281,6 @@ jQuery(document).ready(function($) {
 				data_send = Object.assign(data, options);
 			}
 			$.post(this.ajaxurl, data_send);
-			
-			const seekTime = video_data.best_watch_time > instance.currentTime ? video_data.best_watch_time : instance.currentTime;
-			if (seekTime > this.max_seek_time) {
-				this.max_seek_time = seekTime;
-			}
 		},
 		autoload_content: function() {
 			console.log('Autoloader called');
@@ -309,6 +346,63 @@ jQuery(document).ready(function($) {
 			} else {
 			  return Number(input);
 			}
+		},
+		addWatermark: function() {
+			const options = this.watermarkOptions;
+			const watermarkElement = $('<div>').addClass('tutor-video-player-watermark');
+			if (options.imageUrl) {
+				watermarkElement.append($(`<img src="${options.imageUrl}" alt="logo" />`));
+			} else {
+				watermarkElement.text(options.textContent);
+			}
+			$('.plyr__video-wrapper').append(watermarkElement);
+			watermarkElement.css({ opacity: options.opacity });
+		},
+		showWatermark: function() {
+			const options = this.watermarkOptions;
+			const element = $('.tutor-video-player-watermark');
+			element.css({ display: 'block' });
+			switch (options.position) {
+				case 'top-left':
+					element.css({ top: 30, left: 30 });
+					break;
+				case 'top-right':
+					element.css({ top: 30, right: 30 });
+					break;
+				case 'bottom-left':
+					element.css({ bottom: 40, left: 30 });
+					break;
+				case 'bottom-right':
+					element.css({ bottom: 40, right: 30 });
+				default:
+					break;
+			}
+		},
+		animateWatermark: function(timestamp) {
+			if (!this.lastTimestamp) {
+				this.lastTimestamp = timestamp;
+				this.showTimestamp = timestamp;
+			}
+
+			if (timestamp - this.showTimestamp >= this.watermarkOptions.intervalTime * 1000) {
+				this.showTimestamp = timestamp;
+				this.isVisible = true;
+				const randomLeft = Math.floor(Math.random() * 101);
+				const randomTop = Math.floor(Math.random() * 101);
+				$('.tutor-video-player-watermark').css({
+					display: 'block',
+					left: `${randomLeft}%`,
+					top: `${randomTop}%`,
+					transform: `translate(-${randomLeft}%, -${randomTop}%)`,
+				});
+			}
+
+			if (this.isVisible && timestamp - this.showTimestamp >= this.watermarkOptions.appearanceTime * 1000) {
+				this.isVisible = false;
+				$('.tutor-video-player-watermark').css('display', 'none');
+			}
+
+			this.animationId = requestAnimationFrame((timestamp) => this.animateWatermark(timestamp));
 		},
 		init: function(element) {
 			this.player_DOM = element;

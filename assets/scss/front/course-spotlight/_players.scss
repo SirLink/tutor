@@ -7,6 +7,19 @@
 			margin-left: -25px;
 		}
 	}
+	.tutor-video-player-watermark {
+		position: absolute;
+		font-size: 36px;
+		line-height: 1;
+		font-weight: 700;
+		white-space: nowrap;
+		color: rgba(255, 255, 255, 1);
+		display: none;
+
+		img {
+			width: 200px;
+		}
+	}
 }
 
 .tutor-video-player-wrapper {
