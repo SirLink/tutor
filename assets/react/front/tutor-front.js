@@ -142,7 +142,6 @@ jQuery(document).ready(function($) {
 		animationId: null,
 		lastTimestamp: null,
 		isVisible: false,
-		showTimestamp: null,
 		video_data: function() {
 			const video_track_data = $('#tutor_video_tracking_information').val();
 			return video_track_data ? JSON.parse(video_track_data) : null;
@@ -379,13 +378,15 @@ jQuery(document).ready(function($) {
 			}
 		},
 		animateWatermark: function(timestamp) {
+			const intervalTime = (this.watermarkOptions.intervalTime + this.watermarkOptions.appearanceTime) * 1000;
+			const appearanceTime = this.watermarkOptions.appearanceTime * 1000;
+
 			if (!this.lastTimestamp) {
 				this.lastTimestamp = timestamp;
-				this.showTimestamp = timestamp;
 			}
 
-			if (timestamp - this.showTimestamp >= this.watermarkOptions.intervalTime * 1000) {
-				this.showTimestamp = timestamp;
+			if (timestamp - this.lastTimestamp >= intervalTime) {
+				this.lastTimestamp = timestamp;
 				this.isVisible = true;
 				const randomLeft = Math.floor(Math.random() * 101);
 				const randomTop = Math.floor(Math.random() * 101);
@@ -397,7 +398,7 @@ jQuery(document).ready(function($) {
 				});
 			}
 
-			if (this.isVisible && timestamp - this.showTimestamp >= this.watermarkOptions.appearanceTime * 1000) {
+			if (this.isVisible && timestamp - this.lastTimestamp >= appearanceTime) {
 				this.isVisible = false;
 				$('.tutor-video-player-watermark').css('display', 'none');
 			}
