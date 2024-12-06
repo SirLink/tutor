@@ -80,16 +80,6 @@ window.tutor_popup = function($, icon) {
 	return { popup: this.popup };
 };
 
-window.tutor_date_picker = () => {
-	if (jQuery.datepicker) {
-		var format = _tutorobject.wp_date_format;
-		if (!format) {
-			format = 'yy-mm-dd';
-		}
-		$('.tutor_date_picker').datepicker({ dateFormat: format });
-	}
-};
-
 jQuery(document).ready(function($) {
 	'use strict';
 	const { __, _x, _n, _nx } = wp.i18n;

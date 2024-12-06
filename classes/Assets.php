@@ -205,7 +205,6 @@ class Assets {
 		wp_enqueue_style( 'wp-color-picker' );
 
 		wp_enqueue_script( 'jquery-ui-slider' );
-		wp_enqueue_script( 'jquery-ui-datepicker' );
 
 		wp_enqueue_script( 'tutor-select2', tutor()->url . 'assets/lib/select2/select2.full.min.js', array( 'jquery' ), TUTOR_VERSION, true );
 		wp_enqueue_script( 'tutor-admin', tutor()->url . 'assets/js/tutor-admin.min.js', array( 'jquery', 'tutor-script', 'wp-color-picker', 'wp-i18n', 'wp-data' ), TUTOR_VERSION, true );
@@ -295,11 +294,6 @@ class Assets {
 
 			wp_enqueue_style( 'tutor-select2', tutor()->url . 'assets/lib/select2/select2.min.css', array(), TUTOR_VERSION );
 			wp_enqueue_script( 'tutor-select2', tutor()->url . 'assets/lib/select2/select2.full.min.js', array( 'jquery' ), TUTOR_VERSION, true );
-
-			if ( 'earning' === $wp_query->query_vars['tutor_dashboard_page'] ) {
-				wp_enqueue_script( 'tutor-front-chart-js', tutor()->url . 'assets/lib/Chart.bundle.min.js', array(), TUTOR_VERSION );
-				wp_enqueue_script( 'jquery-ui-datepicker' );
-			}
 		}
 		/**
 		 * Dependency wp-i18n added for translate js file
@@ -319,8 +313,6 @@ class Assets {
 			wp_enqueue_style( 'tutor-frontend-dashboard-css', tutor()->url . 'assets/css/tutor-frontend-dashboard.min.css', array(), TUTOR_VERSION );
 		}
 
-		// Load date picker for announcement at frontend.
-		wp_enqueue_script( 'jquery-ui-datepicker' );
 		$css = '.mce-notification.mce-notification-error{display: none !important;}';
 		wp_add_inline_style( 'tutor-frontend', $css );
 	}
